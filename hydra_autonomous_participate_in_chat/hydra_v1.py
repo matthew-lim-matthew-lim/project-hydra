@@ -1,3 +1,11 @@
+"""
+WIP (INCOMPLETE/NOT WORKING)
+
+Autonomous Chat Participation
+
+Using ChatGPT or other language model
+"""
+
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
