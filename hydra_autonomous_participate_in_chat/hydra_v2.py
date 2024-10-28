@@ -28,6 +28,13 @@ chrome_options = Options()
 chrome_options.add_argument("--no-sandbox")
 # chrome_options.add_argument("--headless")  # You can add this back if you want to run it in headless mode
 
+# Reduce detection of automation
+chrome_options.add_argument("--disable-blink-features=AutomationControlled")   # adding argument to disable the AutomationControlled flag 
+chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])   # exclude the collection of enable-automation switches 
+chrome_options.add_experimental_option("useAutomationExtension", False)    # turn-off userAutomationExtension 
+driver = webdriver.Chrome(options=chrome_options)  # setting the driver path and requesting a page 
+driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})") # changing the property of the navigator value for webdriver to undefined 
+
 # Define paths
 user_home_dir = os.path.expanduser("~")
 chrome_binary_path = os.path.join(user_home_dir, "chrome-linux64", "chrome")
@@ -37,7 +44,7 @@ chromedriver_path = os.path.join(user_home_dir, "chromedriver-linux64", "chromed
 chrome_options.binary_location = chrome_binary_path
 service = Service(chromedriver_path)
 
-target_name = "Brandon Tan"
+target_name = "Addison Foo"
 
 # Initialize Chrome WebDriver
 with webdriver.Chrome(service=service, options=chrome_options) as browser:
