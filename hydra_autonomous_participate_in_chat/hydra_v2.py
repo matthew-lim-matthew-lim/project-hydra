@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 import os
 import time
 import json
+from openai import OpenAI
 
 # Load .env file
 load_dotenv()
@@ -24,10 +25,17 @@ fb_messenger_username = os.getenv('FB_MESSENGER_USERNAME')
 fb_messenger_password = os.getenv('FB_MESSENGER_PASSWORD')
 fb_messenger_pin = os.getenv('CHAT_HISTORY_PIN')
 
+# Set up OpenAI API Key
+openai_client = OpenAI(
+    # This is the default and can be omitted
+    api_key=os.environ.get("OPENAI_API_KEY"),
+)
+
+
 # Define Chrome options
 chrome_options = Options()
 chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--headless")  # You can add this back if you want to run it in headless mode
+# chrome_options.add_argument("--headless")  # You can add this back if you want to run it in headless mode
 
 # Reduce detection of automation
 chrome_options.add_argument("--disable-blink-features=AutomationControlled")   # adding argument to disable the AutomationControlled flag 
@@ -177,6 +185,36 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
             chat_log[target_name].append(message_entry)
 
     #####
+
+    # Determine if it is our turn to send a message, and what message we should send. 
+    if chat_log[target_name]:
+        # At the moment, we can simply check who sent the last message.
+        if chat_log[target_name][-1]["sender"] != "You":
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are the user 'you'. Send a reply message to the other people, and ask a follow up question if you think its appropriate. "
+                        "You are a friendly and casual conversationalist. Your tone should be informal, spontaneous, and playful. "
+                        "Use shorthand expressions and emojis to keep the conversation light and engaging. Lowercase text."
+                        "Respond naturally to topics, showing genuine interest and empathy. Not girly. Nonchalant. Neutral language."
+                        "You may add a touch of humor or encouragement where appropriate, and keep your messages brief, avoiding overly formal language or too much detail."
+                        "Use '\n' for seperate messages. Just send the raw messages, no annotations required."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(chat_log[target_name], indent=4)
+                }
+            ]
+
+            response = openai_client.chat.completions.create(
+                model="gpt-4",
+                messages=messages
+            )
+
+            print(response.choices[0].message.content)
+
 
     # # Wait for the message input box to appear
     # time.sleep(0.1) # Needed, otherwise get a 'StaleElementReferenceException'
