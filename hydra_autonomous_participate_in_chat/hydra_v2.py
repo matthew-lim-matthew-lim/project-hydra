@@ -16,6 +16,7 @@ from selenium.webdriver.common.keys import Keys
 from dotenv import load_dotenv
 import os
 import time
+import json
 
 # Load .env file
 load_dotenv()
@@ -26,7 +27,7 @@ fb_messenger_pin = os.getenv('CHAT_HISTORY_PIN')
 # Define Chrome options
 chrome_options = Options()
 chrome_options.add_argument("--no-sandbox")
-# chrome_options.add_argument("--headless")  # You can add this back if you want to run it in headless mode
+chrome_options.add_argument("--headless")  # You can add this back if you want to run it in headless mode
 
 # Reduce detection of automation
 chrome_options.add_argument("--disable-blink-features=AutomationControlled")   # adding argument to disable the AutomationControlled flag 
@@ -44,7 +45,22 @@ chromedriver_path = os.path.join(user_home_dir, "chromedriver-linux64", "chromed
 chrome_options.binary_location = chrome_binary_path
 service = Service(chromedriver_path)
 
-target_name = "Addison Foo"
+# Get the name of the target
+target_name = input("Input Target Person/Groupchat Name: ")
+
+# Set up logging for the target chat
+file_path = 'chat_log.json'
+
+# Load existing chat log if it exists
+if os.path.exists(file_path):
+    with open(file_path, 'r') as json_file:
+        chat_log = json.load(json_file)
+else:
+    chat_log = {}  # Start with an empty log
+
+# Ensure we have a list for this target chat
+if target_name not in chat_log:
+    chat_log[target_name] = []
 
 # Initialize Chrome WebDriver
 with webdriver.Chrome(service=service, options=chrome_options) as browser:
@@ -117,6 +133,8 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
 
     time.sleep(0.1)
 
+    # browser.execute_script("window.scrollBy(0, 1000);")
+
     # Logic to identify messages
     message_containers = browser.find_elements(By.XPATH, "//div[contains(@class, '__fb-light-mode') and @role='row']")
 
@@ -152,6 +170,12 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
         except:
             print(f"{sender}: [No message text found]")
 
+        message_entry = {"sender": sender, "text": message_text}
+        # Check if this message is already in the log
+        if message_entry not in chat_log[target_name]:
+            print(f"New message found: {sender}: {message_text}")
+            chat_log[target_name].append(message_entry)
+
     #####
 
     # # Wait for the message input box to appear
@@ -162,6 +186,9 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
 
     # # Send the message by simulating the Enter key
     # message_box.send_keys(Keys.RETURN)
+
+    with open(file_path, 'w') as json_file:
+        json.dump(chat_log, json_file, indent=4)
 
     print("done!")
 
