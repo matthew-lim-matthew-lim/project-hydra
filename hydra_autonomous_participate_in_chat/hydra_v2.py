@@ -4,6 +4,9 @@ WIP (INCOMPLETE/NOT WORKING)
 Autonomous Chat Participation
 
 Using ChatGPT or other language model
+
+I guess you could make this run the messaging every 24 hours (with a bit of randomisation to make it look more natural),
+leaving the program running on a server. 
 """
 
 from selenium import webdriver
@@ -18,6 +21,22 @@ import os
 import time
 import json
 from openai import OpenAI
+from selenium.common.exceptions import WebDriverException
+
+def is_driver_active(driver):
+    try:
+        # Try to retrieve the current URL, which is a simple command.
+        driver.current_url
+        return True
+    except WebDriverException as e:
+        # If an exception occurs, it means the driver is dead or disconnected.
+        print(f"Driver is not active: {e}")
+        return False
+    
+# Helper removes characters that aren't in the BMP (since selenium can't send non-BMP characters)
+def remove_non_bmp_characters(text):
+    # Iterate through the text, keeping only BMP characters
+    return ''.join(c for c in text if ord(c) <= 0xFFFF)
 
 # Load .env file
 load_dotenv()
@@ -31,11 +50,10 @@ openai_client = OpenAI(
     api_key=os.environ.get("OPENAI_API_KEY"),
 )
 
-
 # Define Chrome options
 chrome_options = Options()
 chrome_options.add_argument("--no-sandbox")
-# chrome_options.add_argument("--headless")  # You can add this back if you want to run it in headless mode
+chrome_options.add_argument("--headless")  # You can add this back if you want to run it in headless mode
 
 # Reduce detection of automation
 chrome_options.add_argument("--disable-blink-features=AutomationControlled")   # adding argument to disable the AutomationControlled flag 
@@ -72,6 +90,7 @@ if target_name not in chat_log:
 
 # Initialize Chrome WebDriver
 with webdriver.Chrome(service=service, options=chrome_options) as browser:
+
     # Open Messenger login page
     browser.get("https://www.messenger.com/")
 
@@ -109,42 +128,60 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
 
     ### ###
 
-    # Search for the person
-    search_box = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[type="search"]')))
-    search_box.click()
-    search_box.send_keys(target_name)
-    search_box.send_keys(Keys.RETURN)  # Press Enter to search
+    # Restart here
+    scrape_success = False 
 
-    # Optionally, wait for any overlays to disappear
-    try:
-        overlay = WebDriverWait(browser, 10).until(
-            EC.invisibility_of_element_located((By.CSS_SELECTOR, 'div.__fb-light-mode'))
-        )
-    except:
-        pass  # If there's no overlay, continue
+    message_containers = []
 
-    # Wait for the search results to load and find the person
-    person_element = wait.until(EC.element_to_be_clickable((By.XPATH, f"//li//span[text()='{target_name}']")))
-    person_element.click()
+    while not scrape_success:
+        if not is_driver_active(browser):
+            print("Driver is dead. Relaunching...")
+            browser.quit()  # Clean up the old browser
+            browser = driver = webdriver.Chrome(options=chrome_options)  # Reinitialize the browser
+            driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            browser.get("https://www.messenger.com/")
 
-    ### ###
+        try:
+            # Search for the person
+            search_box = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[type="search"]')))
+            search_box.click()
+            search_box.send_keys(target_name)
+            search_box.send_keys(Keys.RETURN)  # Press Enter to search
 
-    #####
-    # Get all the messages in the chat
-    # Optionally, wait for any overlays to disappear
-    try:
-        overlay = WebDriverWait(browser, 10).until(
-            EC.invisibility_of_element_located((By.CSS_SELECTOR, 'div.__fb-light-mode'))
-        )
-    except:
-        pass  # If there's no overlay, continue
+            # Optionally, wait for any overlays to disappear
+            try:
+                overlay = WebDriverWait(browser, 10).until(
+                    EC.invisibility_of_element_located((By.CSS_SELECTOR, 'div.__fb-light-mode'))
+                )
+            except:
+                pass  # If there's no overlay, continue
 
-    time.sleep(0.1)
+            # Wait for the search results to load and find the person
+            person_element = wait.until(EC.element_to_be_clickable((By.XPATH, f"//li//span[text()='{target_name}']")))
+            person_element.click()
 
-    # browser.execute_script("window.scrollBy(0, 1000);")
+            ### ###
 
-    # Logic to identify messages
-    message_containers = browser.find_elements(By.XPATH, "//div[contains(@class, '__fb-light-mode') and @role='row']")
+            #####
+            # Get all the messages in the chat
+            # Optionally, wait for any overlays to disappear
+            try:
+                overlay = WebDriverWait(browser, 10).until(
+                    EC.invisibility_of_element_located((By.CSS_SELECTOR, 'div.__fb-light-mode'))
+                )
+            except:
+                pass  # If there's no overlay, continue
+
+            time.sleep(0.1)
+
+            # browser.execute_script("window.scrollBy(0, 1000);")
+
+            # Logic to identify messages
+            message_containers = browser.find_elements(By.XPATH, "//div[contains(@class, '__fb-light-mode') and @role='row']")
+
+            scrape_success = True
+        except:
+            pass 
 
     for container in message_containers:
         # Identify sender
@@ -184,6 +221,9 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
             print(f"New message found: {sender}: {message_text}")
             chat_log[target_name].append(message_entry)
 
+    with open(file_path, 'w') as json_file:
+        json.dump(chat_log, json_file, indent=4)
+
     #####
 
     # Determine if it is our turn to send a message, and what message we should send. 
@@ -194,12 +234,16 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
                 {
                     "role": "system",
                     "content": (
-                        "You are the user 'you'. Send a reply message to the other people, and ask a follow up question if you think its appropriate. "
-                        "You are a friendly and casual conversationalist. Your tone should be informal, spontaneous, and playful. "
-                        "Use shorthand expressions and emojis to keep the conversation light and engaging. Lowercase text."
-                        "Respond naturally to topics, showing genuine interest and empathy. Not girly. Nonchalant. Neutral language."
-                        "You may add a touch of humor or encouragement where appropriate, and keep your messages brief, avoiding overly formal language or too much detail."
-                        "Use '\n' for seperate messages. Just send the raw messages, no annotations required."
+                        "You are the user 'You'. Send a reply message to the other people, and ask a follow up question if you think its appropriate. "
+                        "Your tone should be tiny bit informal, spontaneous, and tiny bit playful. "
+                        "Sometimes use shorthand expressions and emojis. Lowercase text."
+                        "Respond naturally to topics, showing genuine interest and empathy. Nonchalant. Neutral language."
+                        "I prefer something that feels more natural, grounded, authentic. Clear and straightforward language."
+                        "No emojis allowed."
+                        "Normally each message is short, so a sentance over multiple messages."
+                        "You may add a mature minimalist touch of humor or encouragement where appropriate, and keep your messages brief"
+                        "Use '\n' for seperate messages. Just send the raw text messages, no annotations required. DO NOT USE \" or \'."
+                        "Example for how to format reply: yep\nidrk but i reckon we should play golf\nand\nget maccas after"
                     )
                 },
                 {
@@ -213,20 +257,24 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
                 messages=messages
             )
 
-            print(response.choices[0].message.content)
+            response.choices[0].message.content = remove_non_bmp_characters(response.choices[0].message.content)
 
+            print("ChatGPT Generated Message, Array Form:")
+            print(response.choices[0].message.content.split('\n'))
 
-    # # Wait for the message input box to appear
-    # time.sleep(0.1) # Needed, otherwise get a 'StaleElementReferenceException'
-    # message_box = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'div[aria-label="Message"]')))
-    # message_box.click()
-    # message_box.send_keys("yea")  # Type your message
+            ok_to_send = input("Is this okay to send? (Y/N): ")
 
-    # # Send the message by simulating the Enter key
-    # message_box.send_keys(Keys.RETURN)
+            if ok_to_send == "Y":
+                for message_to_send in response.choices[0].message.content.split('\n'):
+                    # Wait for the message input box to appear
+                    time.sleep(0.1) # Needed, otherwise get a 'StaleElementReferenceException'
+                    message_box = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'div[aria-label="Message"]')))
+                    message_box.click()
+                    message_box.send_keys(message_to_send)  # Type your message
+                    message_box.send_keys(Keys.RETURN)  # Send the message by simulating the Enter key
 
-    with open(file_path, 'w') as json_file:
-        json.dump(chat_log, json_file, indent=4)
+    # Maybe make it so that it counts down until sending, and the user can interrupt it and modify the message, or can ask for the message
+    # to be regenerated.
 
     print("done!")
 
