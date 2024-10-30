@@ -209,16 +209,34 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
                 pass
 
         # Extract and print the message text
+        # try:
+        #     message_text = container.find_element(By.XPATH, ".//div[@dir='auto']").text
+        #     print(f"{sender}: {message_text}")
+        # except:
+        #     print(f"{sender}: [No message text found]")
+
         try:
+            # Try to find the message text element
             message_text = container.find_element(By.XPATH, ".//div[@dir='auto']").text
             print(f"{sender}: {message_text}")
         except:
-            print(f"{sender}: [No message text found]")
+            try:
+                # If the text element is not found, try getting the aria-label attribute of the <a> element.
+                # This is usually when a facebook post is sent or forwarded to a group chat.
+                message_text = container.find_element(By.TAG_NAME, "a").get_attribute("aria-label")
+                if message_text:
+                    print(f"{sender}: {message_text}")
+                else:
+                    message_text = "[No message text or aria-label found]"
+                    print(f"{sender}: [No message text or aria-label found]")
+            except:
+                message_text = "[No message text or aria-label found]"
+                print(f"{sender}: [No message text or aria-label found]")
 
         message_entry = {"sender": sender, "text": message_text}
         # Check if this message is already in the log
         if message_entry not in chat_log[target_name]:
-            print(f"New message found: {sender}: {message_text}")
+            # print(f"New message found: {sender}: {message_text}")
             chat_log[target_name].append(message_entry)
 
     with open(file_path, 'w') as json_file:
@@ -275,15 +293,18 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
                         message_box.click()
                         message_box.send_keys(message_to_send)  # Type your message
                         message_box.send_keys(Keys.RETURN)  # Send the message by simulating the Enter key
+                    print("Messages Sent")
 
                     regenerate = False 
                 elif ok_to_send != "R":
                     break
+                elif ok_to_send == "R":
+                    print("Regenerating Message")
                     
         # Maybe make it so that it counts down until sending, and the user can interrupt it and modify the message, or can ask for the message
         # to be regenerated.
 
-    print("done!")
+    print("Exiting Program")
 
     time.sleep(1)
 
