@@ -6,7 +6,12 @@ Automation at it's finest
 **Requires OpenAI API Key**
 
 Reads a messenger chat and generates a response. 
-Can regenerate response multiple times, or modify response before sending (or changing your mind and not sending).
+Upon generating a message, the user may select from the options:
+- 'Y' to send
+- 'R' to regenerate response
+- 'M' to manually modify response
+- 'F' to provide feedback and regenerate response
+- 'N' to exit program
 
 Takes in a Chat name.
 
