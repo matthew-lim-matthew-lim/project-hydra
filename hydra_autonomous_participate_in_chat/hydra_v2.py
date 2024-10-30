@@ -225,56 +225,63 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
         json.dump(chat_log, json_file, indent=4)
 
     #####
+    regenerate = True
 
-    # Determine if it is our turn to send a message, and what message we should send. 
-    if chat_log[target_name]:
-        # At the moment, we can simply check who sent the last message.
-        if chat_log[target_name][-1]["sender"] != "You":
-            messages = [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are the user 'You'. Send a reply message to the other people, and ask a follow up question if you think its appropriate. "
-                        "Your tone should be tiny bit informal, spontaneous, and tiny bit playful. "
-                        "Sometimes use shorthand expressions and emojis. Lowercase text."
-                        "Respond naturally to topics, showing genuine interest and empathy. Nonchalant. Neutral language."
-                        "I prefer something that feels more natural, grounded, authentic. Clear and straightforward language."
-                        "No emojis allowed."
-                        "Normally each message is short, so a sentance over multiple messages."
-                        "You may add a mature minimalist touch of humor or encouragement where appropriate, and keep your messages brief"
-                        "Use '\n' for seperate messages. Just send the raw text messages, no annotations required. DO NOT USE \" or \'."
-                        "Example for how to format reply: yep\nidrk but i reckon we should play golf\nand\nget maccas after"
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": json.dumps(chat_log[target_name], indent=4)
-                }
-            ]
+    while regenerate:
+        # Determine if it is our turn to send a message, and what message we should send. 
+        if chat_log[target_name]:
+            # At the moment, we can simply check who sent the last message.
+            if chat_log[target_name][-1]["sender"] != "You":
+                messages = [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are the user 'You'. Send a reply message to the other people, and ask a follow up question if you think its appropriate. "
+                            "Your tone should be tiny bit informal, spontaneous, and tiny bit playful. "
+                            "Sometimes use shorthand expressions and emojis. Lowercase text."
+                            "Respond naturally to topics, showing genuine interest and empathy. Nonchalant. Neutral language."
+                            "I prefer something that feels more natural, grounded, authentic. Clear and straightforward language."
+                            "No emojis allowed."
+                            "Normally each message is short, so a sentance over multiple messages."
+                            "You may add a mature minimalist touch of humor or encouragement where appropriate, and keep your messages brief"
+                            "Use '\n' for seperate messages. Just send the raw text messages, no annotations required. DO NOT USE \" or \'."
+                            "Example for how to format reply: yep\nidrk but i reckon we should play golf\nand\nget maccas after"
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": json.dumps(chat_log[target_name], indent=4)
+                    }
+                ]
 
-            response = openai_client.chat.completions.create(
-                model="gpt-4",
-                messages=messages
-            )
+                response = openai_client.chat.completions.create(
+                    model="gpt-4",
+                    messages=messages
+                )
 
-            response.choices[0].message.content = remove_non_bmp_characters(response.choices[0].message.content)
+                response.choices[0].message.content = remove_non_bmp_characters(response.choices[0].message.content)
 
-            print("ChatGPT Generated Message, Array Form:")
-            print(response.choices[0].message.content.split('\n'))
+                print("ChatGPT Generated Message, Array Form:")
+                print(response.choices[0].message.content.split('\n'))
 
-            ok_to_send = input("Is this okay to send? (Y/N): ")
+                # Actually, the program will exit if niether Y or R are sent
+                ok_to_send = input("Is this okay to send? ('Y' to send, 'R' to regenerate response, 'N' to exit program): ")
 
-            if ok_to_send == "Y":
-                for message_to_send in response.choices[0].message.content.split('\n'):
-                    # Wait for the message input box to appear
-                    time.sleep(0.1) # Needed, otherwise get a 'StaleElementReferenceException'
-                    message_box = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'div[aria-label="Message"]')))
-                    message_box.click()
-                    message_box.send_keys(message_to_send)  # Type your message
-                    message_box.send_keys(Keys.RETURN)  # Send the message by simulating the Enter key
+                if ok_to_send == "Y":
+                    for message_to_send in response.choices[0].message.content.split('\n'):
+                        # Wait for the message input box to appear
+                        time.sleep(0.1) # Needed, otherwise get a 'StaleElementReferenceException'
+                        message_box = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'div[aria-label="Message"]')))
+                        message_box.click()
+                        message_box.send_keys(message_to_send)  # Type your message
+                        message_box.send_keys(Keys.RETURN)  # Send the message by simulating the Enter key
 
-    # Maybe make it so that it counts down until sending, and the user can interrupt it and modify the message, or can ask for the message
-    # to be regenerated.
+                    regenerate = False 
+                elif ok_to_send != "R":
+                    break
+                    
+        # Maybe make it so that it counts down until sending, and the user can interrupt it and modify the message, or can ask for the message
+        # to be regenerated.
 
     print("done!")
 
