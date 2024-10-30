@@ -8,7 +8,7 @@ Automation at it's finest
 Reads a messenger chat and generates a response. 
 Upon generating a message, the user may select from the options:
 - 'Y' to send
-- 'R' to regenerate response
+- 'R' to regenerate response (uses feedback provided by user in earlier 'F' inputs for this chat message)
 - 'M' to manually modify response
 - 'F' to provide feedback and regenerate response
 - 'N' to exit program

@@ -1,6 +1,4 @@
 """
-WIP (INCOMPLETE/NOT WORKING)
-
 Autonomous Chat Participation
 
 Using ChatGPT or other language model
@@ -24,6 +22,7 @@ from openai import OpenAI
 from selenium.common.exceptions import WebDriverException
 import readline
 import sys
+from selenium.common.exceptions import TimeoutException
 
 # Helper determines if the driver is active or not
 def is_driver_active(driver):
@@ -160,7 +159,7 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
             browser.get("https://www.messenger.com/")
 
         try:
-            # Search for the person
+            # Search for the person/chat
             search_box = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[type="search"]')))
             search_box.click()
             search_box.send_keys(target_name)
@@ -174,9 +173,31 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
             except:
                 pass  # If there's no overlay, continue
 
-            # Wait for the search results to load and find the person
-            person_element = wait.until(EC.element_to_be_clickable((By.XPATH, f"//li//span[text()='{target_name}']")))
-            person_element.click()
+            # # Wait for the search results to load and find the person/chat
+            try:
+                # Try to find the exact match
+                person_element = wait.until(EC.element_to_be_clickable((By.XPATH, f"//li//span[text()='{target_name}']")))
+                person_element.click()
+
+            except TimeoutException:
+                # If exact match is not found, prompt the user if they're okay with a partial match
+                user_response = input(f"No exact match found for '{target_name}'. "
+                                      "This could be due to emojis in the name of the chat. "
+                                      "Do you want to try a partial match? (Y/N): ")
+
+                if user_response == "Y":
+                    try:
+                        # Find and click the partial match
+                        person_element = wait.until(EC.element_to_be_clickable((By.XPATH, f"//li//span[contains(text(), '{target_name}')]")))
+                        person_element.click()
+                        print("Partial match found!")
+                    except TimeoutException:
+                        print(f"No partial match found for '{target_name}' either.")
+                        sys.exit()  # Terminate the program
+
+                else:
+                    print("No match selected.")
+                    sys.exit()
 
             ### ###
 
@@ -227,12 +248,6 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
                 pass
 
         # Extract and print the message text
-        # try:
-        #     message_text = container.find_element(By.XPATH, ".//div[@dir='auto']").text
-        #     print(f"{sender}: {message_text}")
-        # except:
-        #     print(f"{sender}: [No message text found]")
-
         try:
             # Try to find the message text element
             message_text = container.find_element(By.XPATH, ".//div[@dir='auto']").text
