@@ -262,6 +262,7 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
 
     #####
     regenerate = True
+    regenerate_feedback = None
 
     while regenerate:
         # Determine if it is our turn to send a message, and what message we should send. 
@@ -273,13 +274,14 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
                         "role": "system",
                         "content": (
                             "You are the user 'You'. Send a reply message to the other people, and ask a follow up question if you think its appropriate. "
-                            "Your tone should be tiny bit informal, spontaneous, and tiny bit playful. "
-                            "Sometimes use shorthand expressions and emojis. Lowercase text."
-                            "Respond naturally to topics, showing genuine interest and empathy. Nonchalant. Neutral language."
+                            "Lowercase text."
+                            "Nonchalant. Neutral language."
                             "I prefer something that feels more natural, grounded, authentic. Clear and straightforward language."
                             "No emojis allowed."
                             "Normally each message is short, so a sentance over multiple messages."
+                            "Only respond to maybe the last 10 messages or so, and if you have already responded to a particular message, take account of that."
                             "You may add a mature minimalist touch of humor or encouragement where appropriate, and keep your messages brief"
+                            "The following is extremely important: "
                             "Use '\n' for seperate messages. Just send the raw text messages, no annotations required. DO NOT USE \" or \'."
                             "Example for how to format reply: yep\nidrk but i reckon we should play golf\nand\nget maccas after"
                         )
@@ -289,6 +291,9 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
                         "content": json.dumps(chat_log[target_name], indent=4)
                     }
                 ]
+
+                if regenerate_feedback:
+                    messages.append(regenerate_feedback)
 
                 response = openai_client.chat.completions.create(
                     model="gpt-4",
@@ -301,7 +306,11 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
                 print(response.choices[0].message.content.split('\n'))
 
                 # Actually, the program will exit if niether Y or R are sent
-                ok_to_send = input("Is this okay to send? ('Y' to send, 'R' to regenerate response, 'M' to manually modify response, 'N' to exit program): ")
+                ok_to_send = input("Is this okay to send? ('Y' to send, "
+                                   "'R' to regenerate response, "
+                                   "'M' to manually modify response, "
+                                   "'F' to provide feedback and regenerate response, "
+                                   "'N' to exit program): ")
 
                 if ok_to_send == "Y":
                     send_messages(response.choices[0].message.content.split('\n'))
@@ -325,11 +334,24 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
                     send_messages(modified_string.split('\n'))
                     print("Messages Sent")
                     regenerate = False 
-
-                elif ok_to_send != "R":
-                    break
+                elif ok_to_send == "F":
+                    feedback = input("Input your feedback for the generated message: ")
+                    regenerate_feedback = {
+                        "role": "user",
+                        "content": (
+                            "Apply the user feedback for this previously generated message. "
+                            "Previously Generated Message: " +
+                            response.choices[0].message.content +
+                            "User Feedback: " + 
+                            feedback
+                        )
+                    }
+                    print(regenerate_feedback)
+                    print("Regenerating Message with your Feedback")
                 elif ok_to_send == "R":
                     print("Regenerating Message")
+                else:
+                    break
                     
         # Maybe make it so that it counts down until sending, and the user can interrupt it and modify the message, or can ask for the message
         # to be regenerated.
