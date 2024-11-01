@@ -1,6 +1,14 @@
 # project-hydra
 Automation at it's finest
 
+# hardcore_headless_hydra_autonomous_participate -> `hydra_hardcore_v1.py`
+
+**Requires OpenAI API Key**
+
+Truly autonomous chat participation. Automatically read and reply to mutliple people/chats on a schedule.
+
+Maybe work on a version that uses `cron` to schedule running the program, helping reducing system load?
+
 # hydra_autonomous_participate_in_chat -> `hydra_v3.py` (and etc versions)
 
 **Requires OpenAI API Key**
@@ -35,3 +43,22 @@ Takes in the Chat Name, and the message to send to all members in that chat.
 ### Example Usage:
 
 `python3 hydra_group_chat_dm_all.py`
+
+# Running the scripts truly autonomously
+
+To run the scripts autonomously, you can either:
+- Use a Cloud-based VM
+- Leave it running on your device, or a Raspberry Pi (and etc)
+
+If you are using a Cloud-based VM or plan to close your terminal, you will need to use something like `tmux`, which allows the process to continue in the background.
+
+Usage:
+
+- Start a new `tmux` session:
+```
+tmux new -s mysession
+```
+- Reattach to a `tmux` session:
+```
+tmux new -s mysession
+```
