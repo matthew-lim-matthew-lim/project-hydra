@@ -91,7 +91,7 @@ file_path = 'chat_log.json'
 
 # Are we okay with double-texting, haha rip :(
 double_text = False 
-if sys.argv[1] == "dt":
+if len(sys.argv) > 1 and sys.argv[1] == "dt":
     double_text = True
 
 # Load existing chat log if it exists
