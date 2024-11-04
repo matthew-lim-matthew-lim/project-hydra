@@ -7,14 +7,22 @@ Automation at it's finest
 
 Truly autonomous chat participation. Automatically read and reply to mutliple people/chats on a schedule.
 
+The program will autonomously message targets in cycles, only within restricted hours (eg. sending messages only before 2am and after 6am).
+
+#### On running the program: 
+- You are prompted to enter the time between each hydra cycle in hours (decimals accepted). At each cycle, the bot checks for messages and either sends or will wait until a following hydra cycle to double text (See: `Optional Arguments` section).
+- Then, you are prompted to insert the target chats, whether partial chat names is allowed, and for topics you would like the chat to involve. Each of these is seperated by `\`. You can insert as many targets as you would like.
+    - Example: `Kimi Räikkönen\N\Monaco GP, Pickleball, Baccarat`
+
 ### Optional Arguments:
 
 - Argument 1: 
     - `dt` double-text: If you got seenzoned or sentzoned (rip), the bot can generate a message anyway. By default the bot does not double-text.
-        - Example: `python3 hydra_v3.py dt`
+        - Example: `python3 hydra_v3.py dt` (the bot will double text 🥶).
     - `[integer accepted no-replies]`: The number of cycles where you have recieved no-reply before you will double text.
+        - Example: `python3 hydra_v3.py 3` (the bot will wait 3 cycles with no reply, before double texting 😭😿).
 
-## Running the scripts truly autonomously
+### Running the scripts truly autonomously
 
 To run the scripts autonomously, you can either:
 - Use a Cloud-based VM

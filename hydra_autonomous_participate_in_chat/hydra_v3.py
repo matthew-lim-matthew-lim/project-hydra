@@ -269,7 +269,6 @@ with webdriver.Chrome(service=service, options=chrome_options) as browser:
         message_entry = {"sender": sender, "text": message_text}
         # Check if this message is already in the log
         if message_entry not in chat_log[target_name]:
-            # print(f"New message found: {sender}: {message_text}")
             chat_log[target_name].append(message_entry)
 
     with open(file_path, 'w') as json_file:
