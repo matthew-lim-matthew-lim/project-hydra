@@ -25,6 +25,7 @@ import sys
 from selenium.common.exceptions import TimeoutException
 import random
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 # Helper determines if the driver is active or not
 def is_driver_active(driver):
@@ -58,8 +59,9 @@ RESTRICTED_END = 6    # 6 AM
 
 # Restricted hours ensure we don't send messages during cooked hours
 def is_in_restricted_hours():
-    current_hour = datetime.now().hour
-    return RESTRICTED_START <= current_hour < RESTRICTED_END
+    current_hour = datetime.now(ZoneInfo("Australia/Sydney")).hour
+    print(f"The current time is: {current_hour}")
+    return current_hour > RESTRICTED_START and current_hour < RESTRICTED_END
 
 # Load .env file
 load_dotenv()
@@ -85,22 +87,31 @@ chrome_options.add_experimental_option("useAutomationExtension", False)    # tur
 driver = webdriver.Chrome(options=chrome_options)  # setting the driver path and requesting a page 
 driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})") # changing the property of the navigator value for webdriver to undefined 
 
-# Define paths
-user_home_dir = os.path.expanduser("~")
-chrome_binary_path = os.path.join(user_home_dir, "chrome-linux64", "chrome")
-chromedriver_path = os.path.join(user_home_dir, "chromedriver-linux64", "chromedriver")
+# # Define paths
+# user_home_dir = os.path.expanduser("~")
+# chrome_binary_path = os.path.join(user_home_dir, "chrome-linux64", "chrome")
+# chromedriver_path = os.path.join(user_home_dir, "chromedriver-linux64", "chromedriver")
 
-# Set binary location and service
-chrome_options.binary_location = chrome_binary_path
-service = Service(chromedriver_path)
+# # Set binary location and service
+# chrome_options.binary_location = chrome_binary_path
+# service = Service(chromedriver_path)
 
 # Set up logging for the target chat
 file_path = 'chat_log.json'
 
+# No-reply count: The number of no-replies before double-texting. Default is 40.
+init_no_reply_count = 40
+
 # Are we okay with double-texting, haha rip :(
 double_text = False 
-if len(sys.argv) > 1 and sys.argv[1] == "dt":
-    double_text = True
+if len(sys.argv) > 1:
+    if sys.argv[1] == "dt":
+        double_text = True
+    elif sys.argv[1].isdigit():
+        # If the 1st argument is a number, it is the number of no-replies before double-texting
+        init_no_reply_count = int(sys.argv[1])
+
+no_reply_count = init_no_reply_count
 
 # Load existing chat log if it exists
 if os.path.exists(file_path):
@@ -153,7 +164,7 @@ while True:
 
     print("\nStarting Hydra Cycle. Put your seatbelts on!\n")
     # Initialize Chrome WebDriver
-    with webdriver.Chrome(service=service, options=chrome_options) as browser:
+    with webdriver.Chrome(options=chrome_options) as browser:
         # Open Messenger login page
         browser.get("https://www.messenger.com/")
 
@@ -324,8 +335,11 @@ while True:
             
             # Determine if it is our turn to send a message, and what message we should send. 
             if chat_log[target_name]:
+                if chat_log[target_name][-1]["sender"] != "You":
+                    no_reply_count -= 1
                 # Send message if it is our turn to reply, or if we want to double_text
-                if chat_log[target_name][-1]["sender"] != "You" or double_text:
+                if chat_log[target_name][-1]["sender"] != "You" or double_text or no_reply_count == 0:
+                    no_reply_count = init_no_reply_count
                     messages = [
                         {
                             "role": "system",
@@ -375,6 +389,6 @@ while True:
             time.sleep(1)
 
     print("\nHydra cycle Complete. Wait for next Hydra cycle has been inititated.")
-    wait_time = hrs_between_messages * 60 * 60 + random.randint(-3600, 3600)
+    wait_time = hrs_between_messages * 60 * 60 + random.randint(0, 3600)
     print("The wait time is " + str(wait_time / (60 * 60)) + " hours.")
     time.sleep(wait_time)

@@ -7,6 +7,39 @@ Automation at it's finest
 
 Truly autonomous chat participation. Automatically read and reply to mutliple people/chats on a schedule.
 
+### Optional Arguments:
+
+- Argument 1: 
+    - `dt` double-text: If you got seenzoned or sentzoned (rip), the bot can generate a message anyway. By default the bot does not double-text.
+        - Example: `python3 hydra_v3.py dt`
+    - `[integer accepted no-replies]`: The number of cycles where you have recieved no-reply before you will double text.
+
+## Running the scripts truly autonomously
+
+To run the scripts autonomously, you can either:
+- Use a Cloud-based VM
+- Leave it running on your device, or a Raspberry Pi (and etc)
+
+If you are using a Cloud-based VM or plan to close your terminal, you will need to use something like `tmux`, which allows the process to continue in the background.
+
+Usage:
+
+- Start a new `tmux` session:
+```
+tmux new -s mysession
+```
+- Detach from the `tmux` session by pressing `Ctrl + B` followed by `D`.
+- Reattach to a `tmux` session:
+```
+tmux attach -t mysession
+```
+- View active `tmux` sessions:
+```
+tmux ls
+```
+
+### Future Work:
+
 Maybe work on a version that uses `cron` to schedule running the program, helping reducing system load?
 
 # hydra_autonomous_participate_in_chat -> `hydra_v3.py` (and etc versions)
@@ -43,22 +76,3 @@ Takes in the Chat Name, and the message to send to all members in that chat.
 ### Example Usage:
 
 `python3 hydra_group_chat_dm_all.py`
-
-# Running the scripts truly autonomously
-
-To run the scripts autonomously, you can either:
-- Use a Cloud-based VM
-- Leave it running on your device, or a Raspberry Pi (and etc)
-
-If you are using a Cloud-based VM or plan to close your terminal, you will need to use something like `tmux`, which allows the process to continue in the background.
-
-Usage:
-
-- Start a new `tmux` session:
-```
-tmux new -s mysession
-```
-- Reattach to a `tmux` session:
-```
-tmux new -s mysession
-```
